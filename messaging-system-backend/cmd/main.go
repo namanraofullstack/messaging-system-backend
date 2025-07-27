@@ -45,6 +45,10 @@ func main() {
 	http.HandleFunc("/group/promote", handlers.PromoteMemberToAdmin)
 	http.HandleFunc("/group/demote", handlers.DemoteAdminToMember)
 
+	http.HandleFunc("/chats/latest-dm-previews", handlers.ViewLatestUserChats)
+	http.HandleFunc("/chats/latest-group-previews", handlers.ViewLatestGroups)
+	http.HandleFunc("/chats/messages", handlers.ViewChatMessages)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

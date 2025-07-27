@@ -52,3 +52,27 @@ type PromoteOrDemoteInput struct {
 	GroupID int `json:"group_id"`
 	UserID  int `json:"user_id"`
 }
+
+type MessagePreview struct {
+	ID         int       `json:"id"`
+	SenderID   int       `json:"sender_id"`
+	ReceiverID int       `json:"receiver_id"`
+	Content    string    `json:"content"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type GroupPreview struct {
+	ID              int       `json:"id"`
+	Name            string    `json:"name"`
+	LastMessage     string    `json:"last_message"`
+	LastMessageTime time.Time `json:"last_message_time"`
+}
+
+type ChatMessage struct {
+	ID         int       `json:"id"`
+	SenderID   int       `json:"sender_id,omitempty"`
+	ReceiverID int       `json:"receiver_id,omitempty"`
+	GroupID    int       `json:"group_id,omitempty"`
+	Content    string    `json:"content"`
+	CreatedAt  time.Time `json:"created_at"`
+}
