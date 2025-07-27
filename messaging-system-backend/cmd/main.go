@@ -49,6 +49,8 @@ func main() {
 	http.HandleFunc("/chats/latest-group-previews", handlers.ViewLatestGroups)
 	http.HandleFunc("/chats/messages", handlers.ViewChatMessages)
 
+	http.HandleFunc("/groups/summary", handlers.GetGroupSummary)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
