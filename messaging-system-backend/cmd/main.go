@@ -32,6 +32,19 @@ func main() {
 	// Protected route using JWT middleware
 	http.Handle("/protected", middleware.JWTMiddleware(http.HandlerFunc(handlers.ProtectedHandler)))
 
+	// Message sending route
+	http.HandleFunc("/send", handlers.SendMessageHandler)
+	// Group message route
+	http.HandleFunc("/group/message", handlers.GroupMessageHandler)
+
+	http.HandleFunc("/group/create", handlers.CreateGroup)
+
+	http.HandleFunc("/group/add-member", handlers.AddMemberToGroup)
+	http.HandleFunc("/group/remove-member", handlers.RemoveMemberFromGroup)
+
+	http.HandleFunc("/group/promote", handlers.PromoteMemberToAdmin)
+	http.HandleFunc("/group/demote", handlers.DemoteAdminToMember)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

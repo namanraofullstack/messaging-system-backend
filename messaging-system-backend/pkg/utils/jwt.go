@@ -3,7 +3,9 @@ package utils
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"messaging-system-backend/internal/database"
@@ -13,8 +15,9 @@ import (
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET_KEY"))
 
-func GenerateJWT(username string) (string, error) {
+func GenerateJWT(userID int, username string) (string, error) {
 	claims := jwt.MapClaims{
+		"user_id":  userID,
 		"username": username,
 		"exp":      time.Now().Add(15 * time.Minute).Unix(),
 		"iat":      time.Now().Unix(),
@@ -67,4 +70,17 @@ func IsTokenBlacklisted(tokenString string) bool {
 
 	result := database.RedisClient.Get(ctx, key)
 	return result.Err() == nil // If no error, key exists (token is blacklisted)
+}
+
+func ExtractUserIDFromToken(r *http.Request) (int, error) {
+	tokenStr := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET_KEY")), nil
+	})
+	if err != nil || !token.Valid {
+		return 0, err
+	}
+	userID := int(claims["user_id"].(float64)) // You must store `user_id` in the token
+	return userID, nil
 }

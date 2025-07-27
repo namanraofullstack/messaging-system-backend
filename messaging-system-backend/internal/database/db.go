@@ -36,6 +36,37 @@ func InitDB() error {
 						password TEXT NOT NULL,
 						created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 					);
+					CREATE TABLE IF NOT EXISTS messages (
+    id SERIAL PRIMARY KEY,
+    sender_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    receiver_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS groups (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Group Members table
+CREATE TABLE IF NOT EXISTS group_members (
+    id SERIAL PRIMARY KEY,
+    group_id INT REFERENCES groups(id) ON DELETE CASCADE,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    is_admin BOOLEAN DEFAULT FALSE,
+    UNIQUE(group_id, user_id)
+);
+
+-- Group Messages table
+CREATE TABLE IF NOT EXISTS group_messages (
+    id SERIAL PRIMARY KEY,
+    group_id INT REFERENCES groups(id) ON DELETE CASCADE,
+    sender_id INT REFERENCES users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
 				`
 				if _, err := DB.Exec(createTable); err != nil {
 					return fmt.Errorf("❌ Failed to create Users table: %w", err)
