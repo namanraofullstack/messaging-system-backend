@@ -10,6 +10,7 @@ import (
 
 var RedisClient *redis.Client
 
+// InitRedis initializes the Redis client with the provided URL and password from environment variables.
 func InitRedis() error {
 	redisURL := os.Getenv("REDIS_URL")
 	if redisURL == "" {
@@ -18,8 +19,8 @@ func InitRedis() error {
 
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     redisURL,
-		Password: os.Getenv("REDIS_PASSWORD"), // no password if empty
-		DB:       0,                           // use default DB
+		Password: os.Getenv("REDIS_PASSWORD"),
+		DB:       0,
 	})
 
 	// Test connection

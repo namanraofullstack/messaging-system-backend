@@ -11,6 +11,7 @@ import (
 
 var DB *sql.DB
 
+// InitDB initializes the database connection using environment variables for configuration.
 func InitDB() error {
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		os.Getenv("DB_USER"),
@@ -22,61 +23,17 @@ func InitDB() error {
 
 	var err error
 	for i := 0; i < 10; i++ {
-		DB, err = sql.Open("postgres", connStr)
+		db, err := sql.Open("postgres", connStr)
 		if err == nil {
-			err = DB.Ping()
+			err = db.Ping()
 			if err == nil {
+				DB = db
 				fmt.Println("✅ Connected to DB successfully!")
-
-				// Create Users table if not exists
-				createTable := `
-					CREATE TABLE IF NOT EXISTS Users (
-						id SERIAL PRIMARY KEY,
-						username VARCHAR(100) UNIQUE NOT NULL,
-						password TEXT NOT NULL,
-						created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-					);
-					CREATE TABLE IF NOT EXISTS messages (
-    id SERIAL PRIMARY KEY,
-    sender_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    receiver_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS groups (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- Group Members table
-CREATE TABLE IF NOT EXISTS group_members (
-    id SERIAL PRIMARY KEY,
-    group_id INT REFERENCES groups(id) ON DELETE CASCADE,
-    user_id INT REFERENCES users(id) ON DELETE CASCADE,
-    is_admin BOOLEAN DEFAULT FALSE,
-    UNIQUE(group_id, user_id)
-);
-
--- Group Messages table
-CREATE TABLE IF NOT EXISTS group_messages (
-    id SERIAL PRIMARY KEY,
-    group_id INT REFERENCES groups(id) ON DELETE CASCADE,
-    sender_id INT REFERENCES users(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-				`
-				if _, err := DB.Exec(createTable); err != nil {
-					return fmt.Errorf("❌ Failed to create Users table: %w", err)
-				}
-				fmt.Println("📦 Users table ensured.")
 				return nil
 			}
 		}
-		fmt.Println("⏳ Waiting for DB to be ready...")
+		fmt.Printf("⏳ DB not ready (%v). Retrying...\n", err)
 		time.Sleep(2 * time.Second)
 	}
-	return fmt.Errorf("❌ Error pinging DB: %w", err)
+	return fmt.Errorf("❌ Could not connect to DB: %w", err)
 }
