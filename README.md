@@ -588,6 +588,35 @@ curl --location 'http://localhost:8080/groups/summary?group_id=4' \
 {"error": "Failed to generate summary"}
 ```
 
+### 6. Edit Messages
+
+#### Edit Direct Messages
+
+```bash
+curl --location --request PUT 'http://localhost:8080/edit/direct' \
+--header 'Authorization: Bearer <YOUR_TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "message_id": 1,
+    "new_content": "Hey there! Saawan (edited2)",
+    "last_updated_at": "2025-07-28T13:08:38.699794Z"
+}'
+```
+
+#### Edit Group Messages
+
+```bash
+curl --location --request PUT 'http://localhost:8080/edit/group' \
+--header 'Authorization: Bearer <YOUR_TOKEN>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "message_id": 1,
+    "new_content": "Edited group message",
+    "last_updated_at": "2025-07-28T13:12:52.757404Z"
+}'
+```
+---
+
 ## 🔧 System Assumptions
 
 ### 1. Authentication & Security

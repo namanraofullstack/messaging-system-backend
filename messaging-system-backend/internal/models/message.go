@@ -9,12 +9,17 @@ type Message struct {
 	ReceiverID int       `json:"receiver_id"`
 	Content    string    `json:"content"`
 	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // GroupMessageInput models the input for sending a message to a group
 type GroupMessageInput struct {
-	GroupID int    `json:"group_id"`
-	Content string `json:"content"`
+	ID        int       `json:"id"`
+	GroupID   int       `json:"group_id"`
+	SenderID  int       `json:"sender_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // ChatMessage models a message in a chat, which can be sent to a user or a group
@@ -25,4 +30,11 @@ type ChatMessage struct {
 	GroupID    int       `json:"group_id,omitempty"`
 	Content    string    `json:"content"`
 	CreatedAt  time.Time `json:"created_at"`
+}
+
+// EditMessageInput models the input for editing a message
+type EditMessageInput struct {
+	MessageID     int       `json:"message_id"`
+	NewContent    string    `json:"new_content"`
+	LastUpdatedAt time.Time `json:"last_updated_at"`
 }

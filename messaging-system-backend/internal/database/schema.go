@@ -54,6 +54,10 @@ func EnsureTables() error {
 
 	CREATE INDEX IF NOT EXISTS idx_group_messages_group_id ON group_messages(group_id);
 	CREATE INDEX IF NOT EXISTS idx_group_messages_sender_id ON group_messages(sender_id);
+
+	ALTER TABLE messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+	ALTER TABLE group_messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
 	`
 
 	if _, err := DB.Exec(schema); err != nil {

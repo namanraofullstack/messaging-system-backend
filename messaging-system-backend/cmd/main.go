@@ -54,6 +54,10 @@ func main() {
 	//Group messages summary
 	http.HandleFunc("/groups/summary", handlers.GetGroupSummary)
 
+	// Edit message routes
+	http.HandleFunc("/edit/direct", handlers.EditDirectMessageHandler)
+	http.HandleFunc("/edit/group", handlers.EditGroupMessageHandler)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

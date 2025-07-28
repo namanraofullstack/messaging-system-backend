@@ -1,0 +1,1 @@
+docker exec -it chat_postgres psql -U chatuser -d chatdb
