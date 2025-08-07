@@ -11,11 +11,17 @@ import (
 func GetLatestMessagesFromUsers(userID int) ([]models.MessagePreview, error) {
 	rows, err := database.DB.Query(`
 		SELECT DISTINCT ON (LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id)) 
-			id, sender_id, receiver_id, content, created_at
-		FROM messages
-		WHERE sender_id = $1 OR receiver_id = $1
-		ORDER BY LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id), created_at DESC
-		LIMIT 10
+    m.id, m.sender_id, m.receiver_id, 
+    s.status AS sender_status, 
+    r.status AS receiver_status, 
+    m.content, m.created_at
+FROM messages m
+JOIN users s ON s.id = m.sender_id
+JOIN users r ON r.id = m.receiver_id
+WHERE m.sender_id = $1 OR m.receiver_id = $1
+ORDER BY LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id), m.created_at DESC
+LIMIT 10
+
 	`, userID)
 	if err != nil {
 		return nil, err
@@ -25,9 +31,18 @@ func GetLatestMessagesFromUsers(userID int) ([]models.MessagePreview, error) {
 	var previews []models.MessagePreview
 	for rows.Next() {
 		var msg models.MessagePreview
-		if err := rows.Scan(&msg.ID, &msg.SenderID, &msg.ReceiverID, &msg.Content, &msg.CreatedAt); err != nil {
-			return nil, err
-		}
+		if err := rows.Scan(
+    &msg.ID,
+    &msg.SenderID,
+    &msg.ReceiverID,
+    &msg.SenderStatus,
+    &msg.ReceiverStatus,
+    &msg.Content,
+    &msg.CreatedAt,
+); err != nil {
+    return nil, err
+}
+
 		previews = append(previews, msg)
 	}
 	return previews, nil
@@ -36,18 +51,26 @@ func GetLatestMessagesFromUsers(userID int) ([]models.MessagePreview, error) {
 // GetLatestGroupsWithMessages retrieves the latest groups with messages
 func GetLatestGroupsWithMessages(userID int) ([]models.GroupPreview, error) {
 	rows, err := database.DB.Query(`
-		SELECT g.id, g.name, COALESCE(m.content, '') AS last_message, COALESCE(m.created_at, NOW()) AS last_message_time
-		FROM groups g
-		INNER JOIN group_members gm ON g.id = gm.group_id
-		LEFT JOIN LATERAL (
-			SELECT content, created_at 
-			FROM group_messages 
-			WHERE group_id = g.id 
-			ORDER BY created_at DESC LIMIT 1
-		) m ON true
-		WHERE gm.user_id = $1
-		ORDER BY last_message_time DESC
-		LIMIT 10
+		SELECT g.id, g.name,
+       COALESCE(m.content, '') AS last_message,
+       COALESCE(m.created_at, NOW()) AS last_message_time,
+       COALESCE(su.status, 'Available') AS sender_status,
+       COALESCE(ru.status, 'Available') AS receiver_status
+FROM groups g
+INNER JOIN group_members gm ON g.id = gm.group_id
+LEFT JOIN LATERAL (
+    SELECT sender_id, content, created_at
+    FROM group_messages
+    WHERE group_id = g.id
+    ORDER BY created_at DESC
+    LIMIT 1
+) m ON true
+LEFT JOIN users su ON su.id = m.sender_id           
+LEFT JOIN users ru ON ru.id = $1                    
+WHERE gm.user_id = $1
+ORDER BY last_message_time DESC
+LIMIT 10
+
 	`, userID)
 	if err != nil {
 		return nil, err
@@ -57,9 +80,13 @@ func GetLatestGroupsWithMessages(userID int) ([]models.GroupPreview, error) {
 	var groups []models.GroupPreview
 	for rows.Next() {
 		var g models.GroupPreview
-		if err := rows.Scan(&g.ID, &g.Name, &g.LastMessage, &g.LastMessageTime); err != nil {
-			return nil, err
-		}
+		if err := rows.Scan(
+	&g.ID, &g.Name, &g.LastMessage, &g.LastMessageTime,
+	&g.SenderStatus, &g.ReceiverStatus,
+); err != nil {
+	return nil, err
+}
+
 		groups = append(groups, g)
 	}
 	return groups, nil
@@ -70,11 +97,17 @@ func GetLatestMessages(chatType string, chatID int, userID int) ([]models.ChatMe
 	switch chatType {
 	case "dm":
 		rows, err := database.DB.Query(`
-			SELECT id, sender_id, receiver_id, content, created_at
-			FROM messages
-			WHERE (sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1)
-			ORDER BY created_at DESC
-			LIMIT 10
+			SELECT m.id, m.sender_id, m.receiver_id,
+       m.content, m.created_at,
+       su.status AS sender_status,
+       ru.status AS receiver_status
+FROM messages m
+JOIN users su ON su.id = m.sender_id
+JOIN users ru ON ru.id = m.receiver_id
+WHERE (m.sender_id = $1 AND m.receiver_id = $2) OR (m.sender_id = $2 AND m.receiver_id = $1)
+ORDER BY m.created_at DESC
+LIMIT 10
+
 		`, userID, chatID)
 		if err != nil {
 			return nil, err
@@ -84,20 +117,31 @@ func GetLatestMessages(chatType string, chatID int, userID int) ([]models.ChatMe
 		var messages []models.ChatMessage
 		for rows.Next() {
 			var msg models.ChatMessage
-			if err := rows.Scan(&msg.ID, &msg.SenderID, &msg.ReceiverID, &msg.Content, &msg.CreatedAt); err != nil {
-				return nil, err
-			}
+			if err := rows.Scan(
+	&msg.ID, &msg.SenderID, &msg.ReceiverID,
+	&msg.Content, &msg.CreatedAt,
+	&msg.SenderStatus, &msg.ReceiverStatus,
+); err != nil {
+	return nil, err
+}
+
 			messages = append(messages, msg)
 		}
 		return messages, nil
 
 	case "group":
 		rows, err := database.DB.Query(`
-			SELECT id, group_id, sender_id, content, created_at
-			FROM group_messages
-			WHERE group_id = $1
-			ORDER BY created_at DESC
-			LIMIT 10
+			SELECT gm.id, gm.group_id, gm.sender_id,
+       gm.content, gm.created_at,
+       su.status AS sender_status,
+       ru.status AS receiver_status
+FROM group_messages gm
+JOIN users su ON su.id = gm.sender_id
+JOIN users ru ON ru.id = $2
+WHERE gm.group_id = $1
+ORDER BY gm.created_at DESC
+LIMIT 10
+
 		`, chatID)
 		if err != nil {
 			return nil, err
@@ -107,9 +151,15 @@ func GetLatestMessages(chatType string, chatID int, userID int) ([]models.ChatMe
 		var messages []models.ChatMessage
 		for rows.Next() {
 			var msg models.ChatMessage
-			if err := rows.Scan(&msg.ID, &msg.GroupID, &msg.SenderID, &msg.Content, &msg.CreatedAt); err != nil {
-				return nil, err
-			}
+			if err := rows.Scan(
+	&msg.ID, &msg.GroupID, &msg.SenderID,
+	&msg.Content, &msg.CreatedAt,
+	&msg.SenderStatus, &msg.ReceiverStatus,
+); err != nil {
+	return nil, err
+}
+
+
 			messages = append(messages, msg)
 		}
 		return messages, nil

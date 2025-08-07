@@ -58,6 +58,11 @@ func main() {
 	http.HandleFunc("/edit/direct", handlers.EditDirectMessageHandler)
 	http.HandleFunc("/edit/group", handlers.EditGroupMessageHandler)
 
+	//status of users 
+	http.HandleFunc("/user/status", handlers.GetUserStatusHandler)
+	http.Handle("/user/set-status", middleware.JWTMiddleware(http.HandlerFunc(handlers.SetUserStatusHandler)))
+
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
